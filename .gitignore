@@ -1,2 +1,9 @@
-# Ignorar la carpeta __pypache__ generada automáticmente por python
-__pypache__
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos virtuales
+venv/
+.venv/
