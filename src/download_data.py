@@ -5,4 +5,4 @@ if __name__ == '__main__':
 
     for s in symbols:
         df = get_klines(s, limit= 1000)
-        df.to_csv(f'data/{s}_data.csv', index=False)
+        df.to_csv(f'data/raw/{s}_data.csv', index=False)
