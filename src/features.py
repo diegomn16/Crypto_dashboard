@@ -20,7 +20,7 @@ df_cumreturn = ((df_return+1).cumprod() - 1).fillna(0)
 df_cumreturn.columns = df_cumreturn.columns.str.replace('_return$', '_cumreturn', regex = True)
 
 #rolling volatility calculation
-df_vol_roll = df_return.rolling(window=30).std().fillna(0)
+df_vol_roll = df_return.rolling(window=30).std()
 df_vol_roll.columns = df_vol_roll.columns.str.replace('_return$', '_vol_roll', regex=True)
 
 #drawdown

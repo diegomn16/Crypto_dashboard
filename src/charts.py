@@ -1,49 +1,62 @@
 import pandas as pd
 import plotly.express as px
-df = pd.read_csv('data/processed/Joint_features.csv', parse_dates=['date'])
-df = df.set_index('date')
 
-def plot_normalized_prices(df):
+def filer_by_date(df_plot, start_date, end_date):
+    mask = (df_plot['date'] >= start_date) & (df_plot['date'] <= end_date)
+    return df_plot.loc[mask].copy()
+
+def plot_normalized_prices(df, symbols, start_date, end_date):
     df_plot = df.reset_index()
+    df_plot = filer_by_date(df_plot = df_plot, start_date = start_date, end_date = end_date)
 
-    norm_cols = [col for col in df_plot.columns if col.endswith("_norm")]
-    fig = px.line(df_plot, x='date', y=norm_cols, title="Normalized Prices Comparision")
+    symbols = [s.lower() for s in symbols]
+    cols = [f'{s}_norm' for s in symbols if f'{s}_norm' in df_plot.columns]
+
+    df_plot = df_plot[['date'] + cols]
+
+    fig = px.line(df_plot, x='date', y=cols, title="Normalized Prices Comparision")
+    fig.update_layout(yaxis_title = 'Normalized prices', height = 900)
 
     return fig
 
-def plot_daily_returns(df, symbol, start_date, end_date):
-    symbol = symbol.lower()
+def plot_daily_returns(df, symbols, start_date, end_date):
     df_plot = df.reset_index()
+    df_plot = filer_by_date(df_plot = df_plot, start_date = start_date, end_date = end_date)
 
-    return_col = df_plot[['date', f'{symbol}_return']]
-    mask = (return_col['date'] >= start_date) & (return_col['date'] <= end_date)
-    return_col = return_col.loc[mask].copy()
-    fig = px.line(return_col, x = 'date', y = f'{symbol}_return', title = 'Daily return')
+    symbols = [s.lower() for s in symbols]
+    cols = [f'{s}_return' for s in symbols if f'{s}_return' in df_plot.columns]
+
+    df_plot = df_plot[['date'] + cols]
+
+    fig = px.line(df_plot, x = 'date', y = cols, title = 'Daily return')
+    fig.update_layout(yaxis_title = f'Daily Return', height = 900)
 
     return fig
 
-def plot_volatility(df):
+def plot_volatility(df, symbols, start_date, end_date):
     df_plot = df.reset_index()
-    vol_cols = [col for col in df_plot.columns if col.endswith('_vol_roll')]
-    fig = px.line(df_plot, x = 'date', y = vol_cols, title= 'Rolling Volatility (30-day)',)
+    df_plot = filer_by_date(df_plot = df_plot, start_date = start_date, end_date = end_date)
+
+    symbols = [s.lower() for s in symbols]
+    cols = [f'{s}_vol_roll' for s in symbols if f'{s}_vol_roll' in df_plot.columns]
+
+    df_plot = df_plot[['date'] + cols]
+
+    fig = px.line(df_plot, x = 'date', y = cols, title= 'Rolling Volatility (30-day)')
+    fig.update_layout(yaxis_title = 'Volatility', height = 900)
 
     return fig
 
-def plot_drawdown(df):
+def plot_drawdown(df, symbols, start_date, end_date):
     df_plot = df.reset_index()
-    drawdown_cols = [col for col in df_plot.columns if col.endswith('_drawdown')]
-    fig = px.line(df_plot, x = 'date', y = drawdown_cols, title= 'Drawdown Comparision')
-    fig.update_layout(yaxis_title = 'Drawdown')
+    df_plot = filer_by_date(df_plot = df_plot, start_date = start_date, end_date = end_date)
+
+    symbols = [s.lower() for s in symbols]
+    cols = [f'{s}_drawdown' for s in symbols if f'{s}_drawdown' in df_plot.columns]
+
+    df_plot = df_plot[['date'] + cols]
+
+    fig = px.line(df_plot, x = 'date', y = cols, title= 'Drawdown Comparison')
+    fig.update_layout(yaxis_title = 'Drawdown', height = 900)
 
     return fig
-
-
-if __name__ == '__main__':
-    fig = plot_daily_returns(df, symbol='btcusdt', start_date='2025-01-01', end_date='2025-02-01')
-    fig.show()
-    fig = plot_normalized_prices(df)
-    fig.show()
-    fig = plot_volatility(df)
-    fig.show()
-    fig = plot_drawdown(df)
-    fig.show()
