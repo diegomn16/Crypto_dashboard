@@ -41,7 +41,7 @@ df = load_data()
 all_symbols = sorted({col.split("_")[0] for col in df.columns if col.endswith("_return")})
 
 selected_symbols = st.sidebar.multiselect(
-    "Activos",
+    "Criptos",
     all_symbols,
     default=[all_symbols[0]]   # at least one by default
 )
