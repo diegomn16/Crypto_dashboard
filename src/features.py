@@ -1,31 +1,35 @@
 import pandas as pd
 
-df = pd.read_csv('data/processed/Joint_data.csv', parse_dates=['date'])
-df = df.set_index('date')
-df.columns = df.columns.str.replace('_close$', '', regex=True)
+#standard price calculation
+def calc_norm_prices(df: pd.DataFrame):
+    df_norm = (df/df.iloc[0]).add_suffix('_norm')
+    return df_norm
 
-def calculate_drawdown(series):
+#calculation of daily returns
+def calc_daily_returns(df: pd.DataFrame):
+    df_return = df.pct_change().add_suffix('_return').fillna(0)
+    return df_return
+
+#calculation of cumulative returns
+def calc_cum_returns(df_daily: pd.DataFrame):
+    df_cumreturn = ((df_daily+1).cumprod() - 1).fillna(0)
+    df_cumreturn.columns = df_cumreturn.columns.str.replace('_return$', '_cumreturn', regex = True)
+    return df_cumreturn
+
+#rolling volatility calculation
+def calc_vol_roll(df: pd.DataFrame):
+    df_daily = calc_daily_returns(df)
+    df_vol_roll = df_daily.rolling(window=30).std()
+    df_vol_roll.columns = df_vol_roll.columns.str.replace('_return$', '_vol_roll', regex=True)
+    return df_vol_roll
+
+#drawdown
+def calculate_drawdown(series: pd.Series):
     peak = series.cummax()
     drawdown = (series / peak) - 1
     return drawdown
 
-#standard price calculation
-df_norm = (df/df.iloc[0]).add_suffix('_norm')
-
-#calculation of daily returns
-df_return = df.pct_change().add_suffix('_return').fillna(0)
-
-#calculation of cumulative returns
-df_cumreturn = ((df_return+1).cumprod() - 1).fillna(0)
-df_cumreturn.columns = df_cumreturn.columns.str.replace('_return$', '_cumreturn', regex = True)
-
-#rolling volatility calculation
-df_vol_roll = df_return.rolling(window=30).std()
-df_vol_roll.columns = df_vol_roll.columns.str.replace('_return$', '_vol_roll', regex=True)
-
-#drawdown
-df_drawdown = df_norm.apply(calculate_drawdown, axis = 0)
-df_drawdown.columns = df_drawdown.columns.str.replace('_norm$', '_drawdown', regex=True)
-
-df = df.join([df_norm, df_return, df_cumreturn, df_vol_roll, df_drawdown])
-df.to_csv('data/processed/Joint_features.csv')
+def calc_drawdown(df_norm: pd.DataFrame):
+    df_drawdown = df_norm.apply(calculate_drawdown, axis = 0)
+    df_drawdown.columns = df_drawdown.columns.str.replace('_norm$', '_drawdown', regex=True)
+    return df_drawdown

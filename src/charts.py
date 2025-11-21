@@ -1,4 +1,3 @@
-import pandas as pd
 import plotly.express as px
 
 def filer_by_date(df_plot, start_date, end_date):
