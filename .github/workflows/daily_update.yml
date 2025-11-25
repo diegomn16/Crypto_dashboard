@@ -34,7 +34,7 @@ jobs:
 
       # 4. Run the ETL Orchestrator
       - name: Run ETL Script
-        run: python download_data.py
+        run: python src/download_data.py
 
       # 5. Commit and Push changes (Only if the CSV was modified)
       - name: Commit and Push
