@@ -1,27 +1,103 @@
-from data_fetcher import get_klines
-from transform_data import (transform_df, merge_assets)
-from features import (calc_norm_prices, calc_daily_returns, calc_cum_returns, calc_vol_roll, calc_drawdown)
+import pandas as pd
+import numpy as np
+from pathlib import Path
+import sys
+
+# Import custom modules
+# Ensure features.py and utils.py are updated with the logic we discussed
+from data_fetcher import fetch_klines, klines_to_dataframe
+from transform_data import transform_df, merge_assets
+from features import calc_norm_prices, calc_daily_returns, calc_vol_roll, calc_drawdown
+from utils import get_last_timestamp_from_csv, load_data_buffer
+
+CSV_PATH = 'data/processed/Joint_features.csv'
 
 if __name__ == '__main__':
     symbols = ['BTCUSDT', 'ETHUSDT']
-
-    dfs = []
-
-    for s in symbols:
-        df = get_klines(s, limit= 1000)
-        df = transform_df(df, s)
-        dfs.append(df)
     
-    df_merged = merge_assets(dfs)
+    # STATE PREPARATION (Context Loading)
+    # Retrieve the last timestamp to avoid re-downloading existing data
+    last_ts = get_last_timestamp_from_csv(CSV_PATH)
+    
+    start_time = None
+    initial_prices = {}
+    prev_peaks = {}
+    df_buffer = pd.DataFrame()
 
-    df_norm = calc_norm_prices(df_merged)
-    df_daily_return = calc_daily_returns(df_merged)
-    df_cumreturn = calc_cum_returns(df_daily_return)
-    df_vol_roll = calc_vol_roll(df_merged)
-    df_drawdown = calc_drawdown(df_norm)
+    if last_ts:
+        print(f"Updating data since: {pd.to_datetime(last_ts, unit='ms')}")
+        
+        # Request data starting from the next millisecond to avoid duplicates
+        start_time = last_ts + 1 
+        
+        # Load the last 60 rows to act as a buffer for rolling calculations (e.g., volatility)
+        df_buffer = load_data_buffer(CSV_PATH, tail_size=60)
+        
+        # STATE RECOVERY: Reconstruct mathematical context to prevent graph discontinuities
+        if not df_buffer.empty:
+            last_row = df_buffer.iloc[-1]
+            for s in symbols:
+                col = s.lower()
+                # Recover Initial Price (P0) to maintain consistent normalization
+                # Formula: Current_Price / Current_Normalized_Price = P0
+                initial_prices[col] = last_row[col] / last_row[f'{col}_norm']
+                
+                # Recover Historical Peak for Drawdown continuity
+                # Formula: Peak = Normalized_Price / (Drawdown + 1)
+                prev_peaks[f'{col}_norm'] = last_row[f'{col}_norm'] / (last_row[f'{col}_drawdown'] + 1)
 
-    df_features = df_merged.join([df_norm, df_daily_return, df_cumreturn, df_vol_roll, df_drawdown])
+    # FETCH & TRANSFORM (Delta Load)
+    dfs_new = []
+    for s in symbols:
+        # Pass dynamic start_time. If None, it defaults to initial load behavior.
+        raw_data = fetch_klines(s, start_time=start_time)
+        
+        if raw_data:
+            df = klines_to_dataframe(raw_data)
+            df = transform_df(df, s)
+            dfs_new.append(df)
+    
+    # If no new data is retrieved for any symbol, exit gracefully
+    if not dfs_new:
+        print("System is up to date. No new data found.")
+        sys.exit()
 
-    df_features.to_csv('data/processed/Joint_features.csv')
+    # Merge only the newly fetched data
+    df_new_merged = merge_assets(dfs_new)
 
-    print(df_features.head())
+    # BUFFER MERGE (Context Injection)    
+    if not df_buffer.empty:
+        # Concatenate: Recent History (Buffer) + New Data
+        # This provides the necessary window for rolling metrics
+        df_calc = pd.concat([df_buffer, df_new_merged])
+    else:
+        # Initial load scenario: No buffer available
+        df_calc = df_new_merged
+
+    # FEATURE CALCULATION (With State Injection)    
+    # Pass recovered initial_prices and prev_peaks to maintain historical consistency
+    df_norm = calc_norm_prices(df_calc, initial_prices)
+    df_daily_return = calc_daily_returns(df_calc)
+    df_vol_roll = calc_vol_roll(df_calc)
+    df_drawdown = calc_drawdown(df_norm, prev_peaks)
+
+    # Join all calculated features
+    df_features_full = df_calc.join([df_norm, df_daily_return, df_vol_roll, df_drawdown])
+
+    #SMART SAVE (Slicing & Appending)
+    if last_ts:
+        # Slice: Remove buffer rows, keep ONLY the new rows
+        # We identify new rows by checking indices not present in the buffer
+        new_indices = df_features_full.index.difference(df_buffer.index)
+        df_to_save = df_features_full.loc[new_indices]
+        
+        if not df_to_save.empty:
+            # Mode 'a' (append) and header=False to write at the end of the file
+            df_to_save.to_csv(CSV_PATH, mode='a', header=False)
+            print(f"Success: Appended {len(df_to_save)} new rows to {CSV_PATH}.")
+        else:
+            print("Processing complete, but no new unique rows to save.")
+    else:
+        # Initial load: Write mode with header
+        df_features_full.to_csv(CSV_PATH, mode='w', header=True)
+        print("Initial full load completed successfully.")

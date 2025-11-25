@@ -1,20 +1,19 @@
 import pandas as pd
+import numpy as np
 
 #standard price calculation
-def calc_norm_prices(df: pd.DataFrame):
-    df_norm = (df/df.iloc[0]).add_suffix('_norm')
+def calc_norm_prices(df: pd.DataFrame, initial_prices:dict = None):
+    if initial_prices:
+        initial_series = pd.Series(initial_prices)
+        df_norm = df.div(initial_series[df.columns], axis=1).add_suffix('_norm')
+    else:
+        df_norm = (df/df.iloc[0]).add_suffix('_norm')
     return df_norm
 
 #calculation of daily returns
 def calc_daily_returns(df: pd.DataFrame):
     df_return = df.pct_change().add_suffix('_return').fillna(0)
     return df_return
-
-#calculation of cumulative returns
-def calc_cum_returns(df_daily: pd.DataFrame):
-    df_cumreturn = ((df_daily+1).cumprod() - 1).fillna(0)
-    df_cumreturn.columns = df_cumreturn.columns.str.replace('_return$', '_cumreturn', regex = True)
-    return df_cumreturn
 
 #rolling volatility calculation
 def calc_vol_roll(df: pd.DataFrame):
@@ -24,12 +23,21 @@ def calc_vol_roll(df: pd.DataFrame):
     return df_vol_roll
 
 #drawdown
-def calculate_drawdown(series: pd.Series):
-    peak = series.cummax()
-    drawdown = (series / peak) - 1
-    return drawdown
+def calc_drawdown(df_norm: pd.DataFrame, prev_peaks: dict = None):
 
-def calc_drawdown(df_norm: pd.DataFrame):
-    df_drawdown = df_norm.apply(calculate_drawdown, axis = 0)
-    df_drawdown.columns = df_drawdown.columns.str.replace('_norm$', '_drawdown', regex=True)
+    df_drawdown = pd.DataFrame(index=df_norm.index)
+
+    for col in df_norm.columns:
+        series = df_norm[col]
+        col_name = col.replace('_norm', '_drawdown')
+
+        prev_peak = prev_peaks.get(col, -np.inf) if prev_peaks else -np.inf
+
+        current_peaks = series.cummax()
+        if prev_peaks:
+            real_peaks = current_peaks.clip(lower=prev_peak)
+        else:
+            real_peaks = current_peaks
+        df_drawdown[col_name] = (series / real_peaks) - 1
+
     return df_drawdown
