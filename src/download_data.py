@@ -38,13 +38,14 @@ if __name__ == '__main__':
             last_row = df_buffer.iloc[-1]
             for s in symbols:
                 col = s.lower()
-                # Recover Initial Price (P0) to maintain consistent normalization
-                # Formula: Current_Price / Current_Normalized_Price = P0
-                initial_prices[col] = last_row[col] / last_row[f'{col}_norm']
-                
-                # Recover Historical Peak for Drawdown continuity
-                # Formula: Peak = Normalized_Price / (Drawdown + 1)
-                prev_peaks[f'{col}_norm'] = last_row[f'{col}_norm'] / (last_row[f'{col}_drawdown'] + 1)
+            # 1. Recuperamos el contexto matemático (P0 y Picos)
+                if f'{col}_norm' in last_row:
+                    initial_prices[col] = last_row[col] / last_row[f'{col}_norm']
+                    prev_peaks[f'{col}_norm'] = last_row[f'{col}_norm'] / (last_row[f'{col}_drawdown'] + 1)
+            
+            cols_to_keep = [s.lower() for s in symbols]
+            valid_cols = [c for c in cols_to_keep if c in df_buffer.columns]
+            df_buffer = df_buffer[valid_cols]
 
     # FETCH & TRANSFORM (Delta Load)
     dfs_new = []

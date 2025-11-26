@@ -4,8 +4,10 @@ import numpy as np
 #standard price calculation
 def calc_norm_prices(df: pd.DataFrame, initial_prices:dict = None):
     if initial_prices:
+        target_cols = list(initial_prices.keys())
+        valid_cols = [c for c in target_cols if c in df.columns]
         initial_series = pd.Series(initial_prices)
-        df_norm = df.div(initial_series[df.columns], axis=1).add_suffix('_norm')
+        df_norm = df[valid_cols].div(initial_series[valid_cols], axis=1).add_suffix('_norm')
     else:
         df_norm = (df/df.iloc[0]).add_suffix('_norm')
     return df_norm

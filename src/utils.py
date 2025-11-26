@@ -30,25 +30,24 @@ def load_data_buffer(file_path: str, tail_size: int = 60)-> pd.DataFrame:
     
 
     if not file.is_file():
-        return None
+        return pd.DataFrame
     
     try:
-        # First pass: Count total rows to identify the slicing point
-        # Using a generator expression avoids loading file content into memory
         with open(file, 'r') as f:
             total_rows = sum(1 for row in f)
         
         if total_rows > tail_size:
-            # Logic to keep the header but skip old data:
-            # range(1, X) keeps row 0 (header) and skips rows 1 to X
             rows_to_skip = range(1, total_rows - tail_size)
             df = pd.read_csv(file, skiprows=rows_to_skip, parse_dates=['date'])
         else:
-            # Fallback: If the file is smaller than the requested buffer, load everything
-            df = pd.read_csv(file, parse_dates = ['date'])
+            df = pd.read_csv(file, parse_dates=['date'])
+
+        
+        if 'date' in df.columns:
+            df = df.set_index('date')
 
         return df
 
     except Exception as e:
-        print(f'An error has ocured: {e}')
-        return None
+        print(f'An error has occurred: {e}')
+        return pd.DataFrame()
