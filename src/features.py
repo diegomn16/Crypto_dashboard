@@ -17,6 +17,12 @@ def calc_daily_returns(df: pd.DataFrame):
     df_return = df.pct_change().add_suffix('_return').fillna(0)
     return df_return
 
+#calculation of cumreturns
+def calc_cum_return(df_norm: pd.DataFrame):
+    df_cum_return = (df_norm - 1)
+    df_cum_return.columns = df_cum_return.columns.str.replace('_norm$', '_cumreturn', regex=True)
+    return df_cum_return
+
 #rolling volatility calculation
 def calc_vol_roll(df: pd.DataFrame):
     df_daily = calc_daily_returns(df)

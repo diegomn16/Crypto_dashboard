@@ -7,7 +7,7 @@ import sys
 # Ensure features.py and utils.py are updated with the logic we discussed
 from data_fetcher import fetch_klines, klines_to_dataframe
 from transform_data import transform_df, merge_assets
-from features import calc_norm_prices, calc_daily_returns, calc_vol_roll, calc_drawdown
+from features import calc_norm_prices, calc_daily_returns, calc_vol_roll, calc_drawdown, calc_cum_return
 from utils import get_last_timestamp_from_csv, load_data_buffer
 
 CSV_PATH = 'data/processed/Joint_features.csv'
@@ -79,11 +79,12 @@ if __name__ == '__main__':
     # Pass recovered initial_prices and prev_peaks to maintain historical consistency
     df_norm = calc_norm_prices(df_calc, initial_prices)
     df_daily_return = calc_daily_returns(df_calc)
+    df_cum_return = calc_cum_return(df_norm)
     df_vol_roll = calc_vol_roll(df_calc)
     df_drawdown = calc_drawdown(df_norm, prev_peaks)
 
     # Join all calculated features
-    df_features_full = df_calc.join([df_norm, df_daily_return, df_vol_roll, df_drawdown])
+    df_features_full = df_calc.join([df_norm, df_daily_return, df_cum_return, df_vol_roll, df_drawdown])
 
     #SMART SAVE (Slicing & Appending)
     if last_ts:
