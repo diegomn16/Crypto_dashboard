@@ -6,7 +6,7 @@ def fetch_klines(symbol, interval = '1d', limit = 1000, start_time = None):
     Fetches raw candlestick data from Binance API.
     Supports both fixed-limit queries (initial load) and time-based queries (incremental updates).
     """
-    url = f'https://api.binance.com/api/v3/klines'
+    url = f'https://api.binance.us/api/v3/klines'
 
     params = {
         'symbol': symbol,
