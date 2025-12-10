@@ -30,11 +30,11 @@ def load_data():
 
 
 # Sidebar: Data Reload Controls
-st.sidebar.header("Controles")
+st.sidebar.header("Controls")
 
 # If the user clicks "Recargar datos", we invalidate the cache and force a rerun.
 # This is useful to fetch the latest data after the ETL script (download_data.py) has run.
-if st.sidebar.button("Recargar datos"):
+if st.sidebar.button("Reload data"):
     st.cache_data.clear()   # Wipe the memory cache
     st.rerun()              # Restart the script execution to reload fresh data
 

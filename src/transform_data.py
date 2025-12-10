@@ -17,7 +17,7 @@ def transform_df(df: pd.DataFrame, s):
 def merge_assets(dfs):
     # Iteratively merge all DataFrames in the list using 'date' as the key
     # 'how=inner' ensures we only keep timestamps available for ALL assets (intersection)
-    df_merged = reduce(lambda left, right: pd.merge(left, right, on= 'date', how='inner'), dfs)
+    df_merged = reduce(lambda left, right: pd.merge(left, right, on= 'date', how='outer'), dfs)
     
     # Set the date as the index to facilitate time-series operations
     df_merged = df_merged.set_index('date')

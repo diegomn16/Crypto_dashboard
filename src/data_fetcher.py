@@ -15,28 +15,20 @@ def fetch_klines(symbol, interval = '1d', limit = 1000, start_time = None):
     }
 
     # Incremental Loading Logic:
-    # If a start_time is provided (derived from our local CSV), we prioritize time-based fetching.
     if start_time:
         params['startTime'] = start_time
-        # We remove 'limit' to request all available data since start_time.
-        # Note: Binance still has a hard server-side limit (usually 500-1000 candles per request),
-        # but for daily updates (1 candle), this works perfectly.
         del params['limit']
 
-    try:
-        # Set a timeout to prevent the script from hanging indefinitely on network issues
-        response = requests.get(url, params=params, timeout=10)
+    # Set a timeout to prevent the script from hanging indefinitely on network issues
+    response = requests.get(url, params=params, timeout=10)
         
-        # Raise an HTTPError if the HTTP request returned an unsuccessful status code (4xx or 5xx)
-        response.raise_for_status()
+    # Raise an HTTPError if the HTTP request returned an unsuccessful status code (4xx or 5xx)
+    response.raise_for_status()
         
-        data = response.json()
-        return data
+    data = response.json()
+    return data
     
-    except Exception as e:
-        print(f'An error has occurred: {e}')
-        # Returning None allows the main script to handle the failure gracefully
-        return None
+    
 
 def klines_to_dataframe(raw):
     """

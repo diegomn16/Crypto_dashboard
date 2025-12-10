@@ -55,8 +55,12 @@ if __name__ == '__main__':
         
         if raw_data:
             df = klines_to_dataframe(raw_data)
-            df = transform_df(df, s)
-            dfs_new.append(df)
+
+            if not df.empty:
+                df = transform_df(df, s)
+                dfs_new.append(df)
+            else:
+                print(f'Binance returned an empty structure for {s}')
     
     # If no new data is retrieved for any symbol, exit gracefully
     if not dfs_new:
